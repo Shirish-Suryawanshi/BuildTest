@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: affinity
+  annotations:
+     robin.io/robinrpool: default
+     robin.io/networks: '[{"ippool": "demo"}]'
+spec:
+  selector:
+    matchLabels:
+      app: web
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: web
+      annotations:
+        robin.io/robinrpool: default
+        robin.io/networks: '[{"ippool": "demo"}]'
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - web
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: web-app
+        image: registry.k8s.io/nginx-slim:0.8
+        env:       
+          - name: "REDIS_HOST"
+            value: "redis"

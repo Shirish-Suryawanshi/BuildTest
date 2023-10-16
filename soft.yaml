@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cache
+  namespace: affinity
+  annotations:
+    #robin.io/roundrobin: host
+    robin.io/robinrpool: default
+spec:
+  selector:
+    matchLabels:
+      app: store
+  replicas: 7
+  template:
+    metadata:
+      labels:
+        app: store
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - store
+              topologyKey: "robin.io/robinhost"
+      containers:
+      - name: redis-server
+        image: registry.k8s.io/nginx-slim:0.8
+        resources:
+          limits:
+            cpu: "1"
+          requests:
+            cpu: "500m"

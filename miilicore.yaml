@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod-integer1
+  namespace: affinity 
+spec:
+  containers:
+  - name: nginx
+    image: registry.k8s.io/nginx-slim:0.8
+    resources:
+      limits:
+        cpu: 2
+        memory: 200Mi
+      requests:
+        cpu: 2
+        memory: 200Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod-millicore1
+  namespace: affinity
+spec:
+  containers:
+  - name: nginx
+    image: registry.k8s.io/nginx-slim:0.8
+    resources:
+      limits:
+        cpu: 3200m
+        memory: 200Mi
+      requests:
+        cpu: 3200m
+        memory: 200Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod-integer2
+  namespace: affinity
+spec:
+  containers:
+  - name: nginx
+    image: registry.k8s.io/nginx-slim:0.8
+    resources:
+      limits:
+        cpu: 5
+        memory: 200Mi
+      requests:
+        cpu: 5
+        memory: 200Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod-integer2
+  namespace: affinity
+spec:
+  containers:
+  - name: nginx
+    image: registry.k8s.io/nginx-slim:0.8
+    resources:
+      limits:
+        cpu: 3400
+        memory: 200Mi
+      requests:
+        cpu: 3400
+        memory: 200Mi
