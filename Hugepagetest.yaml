@@ -1,0 +1,67 @@
+=== POD ====
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hugepage-test
+spec:
+  containers:
+  - name: hugepage-container
+    image: gcc:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "gcc -o /hugepage_test /hugepage_test.c && /hugepage_test"]
+    volumeMounts:
+    - name: hugepage-test-volume
+      mountPath: /hugepage_test.c
+      subPath: hugepage_test.c
+    resources:
+      limits:
+        hugepages-1Gi: 4Gi
+        memory: 100Mi
+      requests:
+        hugepages-1Gi: 4Gi
+        memory: 100Mi
+  volumes:
+  - name: hugepage-test-volume
+    configMap:
+      name: hugepage-test
+
+=== Allocate Pages ===
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h> // For sleep()
+
+#define HUGEPAGE_SIZE ((size_t)1 * 1024 * 1024 * 1024) // 1GiB hugepage size
+
+int main() {
+    void *addr;
+
+    // Allocate 4 hugepages (4GiB)
+    addr = mmap(NULL, 4 * HUGEPAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+
+    if (addr == MAP_FAILED) {
+        perror("mmap");
+        return 1;
+    }
+
+    printf("Hugepages allocated successfully!\n");
+
+    // Write to the memory to ensure it's actually allocated
+    for (size_t i = 0; i < 4 * HUGEPAGE_SIZE; i += 4096) {
+        ((char *)addr)[i] = 0;
+    }
+
+    // Keep the program running to inspect memory usage
+    sleep(240);
+
+    return 0;
+
+}
+
+==== Commands ====
+
+sudo chmod 644 /tmp/hugepage_test.c
+kubectl create configmap hugepage-test --from-file=hugepage_test.c=/tmp/hugepage_test.c
+kubectl create -f hugepage_test.yaml
