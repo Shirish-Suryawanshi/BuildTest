@@ -1,0 +1,41 @@
+apiVersion: v1
+ kind: Pod
+ metadata:
+   name: cat1
+#   namespace: affinity
+   annotations:
+#     robin.io/robinrpool: default
+#     "robin.runtime.num_cache_ways": "4"
+      robin.runtime.isolated_shared: "default"
+ spec:
+   tolerations:
+   - effect: NoSchedule
+     key: node-role.kubernetes.io/master
+   containers:
+   - name: test
+     image: registry.k8s.io/nginx-slim:0.8
+     command: ["sleep", "infinity"] 
+     resources:
+       requests:
+         cpu: 2
+         memory: 100Mi
+#         ephemeral-storage: "3Gi"
+         hugepages-1Gi: "8Gi"
+       limits:
+         cpu: 2
+         memory: 100Mi
+#         ephemeral-storage: "3Gi"
+         hugepages-1Gi: "8Gi"
+     volumeMounts:
+     - mountPath: /memfs
+       name: memfs 
+     - mountPath: /hugepages
+       name: hugepages
+   volumes:
+   - name: memfs
+     emptyDir:
+       medium: Memory
+       sizeLimit: 2Gi
+   - name: hugepages
+     emptyDir:
+       medium: HugePages
