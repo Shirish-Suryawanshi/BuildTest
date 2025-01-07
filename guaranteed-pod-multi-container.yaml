@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guaranteed-pod-cfs
+spec:
+  containers:
+  - name: nginx
+    image: registry.k8s.io/nginx-slim:0.8
+    resources:
+      limits:
+        cpu: 1
+        memory: 200Mi
+      requests:
+        cpu: 1
+        memory: 200Mi
+  - name: cfs
+    image: gcr.io/cadvisor/cadvisor:v0.47.1
+    resources:
+      limits:
+        cpu: 1
+        memory: 200Mi
+      requests:
+        cpu: 1
+        memory: 200Mi
+  - name: cfs2
+    image: grafana/grafana:9.2.3
+    resources:
+      limits:
+        cpu: 1
+        memory: 200Mi
+      requests:
+        cpu: 1
+        memory: 200Mi
