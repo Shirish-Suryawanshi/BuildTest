@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: centos-netadmin
+  namespace: default
+  labels:
+    app: test
+spec:
+  securityContext:
+    fsGroup: 10100
+    runAsUser: 1000
+  initContainers:
+  - name: init
+    image: alpine-netadmin-ep:latest
+    imagePullPolicy: IfNotPresent
+    command:
+    - /bin/sh
+    - -c
+    - sleep 3600
+    - |
+      /bin/busybox ip route add 8.8.8.8/32 via 169.254.1.1 dev eth0
+    securityContext:
+      capabilities:
+        add:
+        - "NET_ADMIN"
+  containers:
+  - name: busybox
+    image: alpine-netadmin:latest
+    securityContext:
+      capabilities:
+        add:
+        - "NET_ADMIN"
+    command:
+    - sleep
+    - "3600"
+    imagePullPolicy: IfNotPresent
+  restartPolicy: Always
