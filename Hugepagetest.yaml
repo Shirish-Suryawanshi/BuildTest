@@ -65,3 +65,8 @@ int main() {
 sudo chmod 644 /tmp/hugepage_test.c
 kubectl create configmap hugepage-test --from-file=hugepage_test.c=/tmp/hugepage_test.c
 kubectl create -f hugepage_test.yaml
+ps aux | grep -i huge
+numastat -p 2009536
+cat /proc/meminfo | grep -i huge
+kubectl describe node | grep -i huge
+
