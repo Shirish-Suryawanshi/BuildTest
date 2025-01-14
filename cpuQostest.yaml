@@ -18,7 +18,7 @@ metadata:
 spec:
   containers:
   - name: ${pod_name}-container
-    image: busybox
+    image: busybox:latest
     imagePullPolicy: IfNotPresent
     command: ["sh", "-c", "while true; do echo \$(date): \$(cat /proc/self/status | grep Cpus_allowed_list); sleep 2; done"]
     resources:
@@ -106,6 +106,8 @@ echo "Step 1: Checking CPU Manager state file before deploying pods..."
 check_cpu_manager_state
 echo  # Add a blank line for better readability
 echo "**************"
+echo  # This adds a blank line for better readability
+
 echo "Step 2: Creating and deploying pods..."
 # Best-Effort Pod (no requests or limits)
 create_pod_manifest "best-effort-pod" "" "" "BestEffort"
@@ -123,17 +125,21 @@ kubectl apply -f milli-guaranteed-pod.yaml
 create_pod_manifest "burstable-pod" "500m" "1" "Burstable"
 kubectl apply -f burstable-pod.yaml
 
+echo  # This adds a blank line for better readability
+
 echo "Waiting for pods to be in Running state..."
 kubectl wait --for=condition=Ready pod/best-effort-pod --timeout=60s
 kubectl wait --for=condition=Ready pod/guaranteed-pod --timeout=60s
 kubectl wait --for=condition=Ready pod/milli-guaranteed-pod --timeout=60s
 kubectl wait --for=condition=Ready pod/burstable-pod --timeout=60s
 
+echo  # This adds a blank line for better readability
 echo "Step 3: Checking CPU Manager state file after deploying pods..."
 echo  # This adds a blank line for better readability
 check_cpu_manager_state
 echo  # Add a blank line for better readability
 echo "**************"
+echo  # This adds a blank line for better readability
 echo "Step 4: Printing allocated CPUs for each pod..."
 print_allocated_cpus "best-effort-pod"
 print_allocated_cpus "guaranteed-pod"
@@ -147,6 +153,7 @@ run_workload_and_check_cpu "guaranteed-pod"
 run_workload_and_check_cpu "milli-guaranteed-pod"
 run_workload_and_check_cpu "burstable-pod"
 
+echo  # This adds a blank line for better readability
 echo "Step 6: Cleaning up..."
 echo  # This adds a blank line for better readability
 cleanup_pods
