@@ -1,0 +1,154 @@
+#!/bin/bash
+
+# Path to the CPU Manager state file
+CPU_MANAGER_STATE_FILE="/var/lib/kubelet/cpu_manager_state"
+echo  # This adds a blank line for better readability
+# Function to create a pod manifest
+create_pod_manifest() {
+  local pod_name=$1
+  local cpu_request=$2
+  local cpu_limit=$3
+  local qos_class=$4
+
+  cat <<EOF > ${pod_name}.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${pod_name}
+spec:
+  containers:
+  - name: ${pod_name}-container
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "while true; do echo \$(date): \$(cat /proc/self/status | grep Cpus_allowed_list); sleep 2; done"]
+    resources:
+      requests:
+        cpu: ${cpu_request}
+        memory: 1Gi
+      limits:
+        cpu: ${cpu_limit}
+        memory: 1Gi     
+EOF
+}
+
+
+
+check_cpu_manager_state() {
+  echo "Checking CPU Manager state file: $CPU_MANAGER_STATE_FILE"
+  if [ -f "$CPU_MANAGER_STATE_FILE" ]; then
+    echo "Contents of $CPU_MANAGER_STATE_FILE:"
+    cat $CPU_MANAGER_STATE_FILE
+  else
+    echo "CPU Manager state file not found at $CPU_MANAGER_STATE_FILE. Ensure CPU Manager is enabled with static policy."
+    exit 1
+  fi
+}
+
+
+# Function to print the CPUs allocated to a pod by inspecting the CPU Manager state file
+print_allocated_cpus() {
+  local pod_name=$1
+  echo "Checking allocated CPUs for pod: ${pod_name}"
+
+  # Extract the container name for the pod
+  container_name=$(kubectl get pod ${pod_name} -o jsonpath='{.spec.containers[0].name}')
+  if [ -z "$container_name" ]; then
+    echo "Pod ${pod_name} is not running or container name not found."
+    return
+  fi
+
+  # Use jq to extract the allocated CPUs for the container
+  allocated_cpus=$(jq -r --arg pod_name "$pod_name" --arg container_name "$container_name" \
+    '.entries | to_entries[] | select(.value[$container_name] != null) | .value[$container_name]' $CPU_MANAGER_STATE_FILE)
+
+  if [ -z "$allocated_cpus" ] || [ "$allocated_cpus" == "null" ]; then
+    echo "No CPUs explicitly allocated to pod ${pod_name} (likely using default CPU set)."
+  else
+    echo "Pod ${pod_name} is allocated CPUs: ${allocated_cpus}"
+  fi
+}
+
+# Function to run a workload inside a pod and check CPU usage
+
+run_workload_and_check_cpu() {
+  local pod_name=$1
+  echo "Running multiple workloads inside pod: ${pod_name}"
+
+  # Start multiple CPU-intensive processes inside the pod
+  kubectl exec ${pod_name} -- sh -c "
+    for i in \$(seq 1 5); do
+      yes > /dev/null &
+    done
+  "
+  sleep 5  # Give the processes some time to run
+
+  echo "Checking running processes and CPU cores inside pod: ${pod_name}"
+  kubectl exec ${pod_name} -- sh -c "
+    for pid in \$(ps | grep yes | awk '{print \$1}'); do
+      if [ -f /proc/\$pid/stat ]; then
+        echo \"Process \$pid is running on CPU core: \$(awk '{print \$39}' /proc/\$pid/stat)\";
+      else
+        echo \"Process \$pid no longer exists.\";
+      fi
+    done
+  "
+}
+
+# Function to clean up pods
+cleanup_pods() {
+  echo "Cleaning up pods..."
+  kubectl delete pod best-effort-pod guaranteed-pod milli-guaranteed-pod burstable-pod
+  rm -f best-effort-pod.yaml guaranteed-pod.yaml milli-guaranteed-pod.yaml burstable-pod.yaml
+}
+
+# Main script starts here
+echo "Step 1: Checking CPU Manager state file before deploying pods..."
+check_cpu_manager_state
+echo  # Add a blank line for better readability
+echo "**************"
+echo "Step 2: Creating and deploying pods..."
+# Best-Effort Pod (no requests or limits)
+create_pod_manifest "best-effort-pod" "" "" "BestEffort"
+kubectl apply -f best-effort-pod.yaml
+
+# Guaranteed Pod (whole CPU)
+create_pod_manifest "guaranteed-pod" "8" "8" "Guaranteed"
+kubectl apply -f guaranteed-pod.yaml
+
+# Milli-Guaranteed Pod (fractional CPU)
+create_pod_manifest "milli-guaranteed-pod" "400m" "400m" "milli-Guaranteed"
+kubectl apply -f milli-guaranteed-pod.yaml
+
+# Burstable Pod (request < limit)
+create_pod_manifest "burstable-pod" "500m" "1" "Burstable"
+kubectl apply -f burstable-pod.yaml
+
+echo "Waiting for pods to be in Running state..."
+kubectl wait --for=condition=Ready pod/best-effort-pod --timeout=60s
+kubectl wait --for=condition=Ready pod/guaranteed-pod --timeout=60s
+kubectl wait --for=condition=Ready pod/milli-guaranteed-pod --timeout=60s
+kubectl wait --for=condition=Ready pod/burstable-pod --timeout=60s
+
+echo "Step 3: Checking CPU Manager state file after deploying pods..."
+echo  # This adds a blank line for better readability
+check_cpu_manager_state
+echo  # Add a blank line for better readability
+echo "**************"
+echo "Step 4: Printing allocated CPUs for each pod..."
+print_allocated_cpus "best-effort-pod"
+print_allocated_cpus "guaranteed-pod"
+print_allocated_cpus "milli-guaranteed-pod"
+print_allocated_cpus "burstable-pod"
+
+echo  # Add a blank line for better readability
+echo "Step 5: Running workloads inside pods and checking CPU usage..."
+run_workload_and_check_cpu "best-effort-pod"
+run_workload_and_check_cpu "guaranteed-pod"
+run_workload_and_check_cpu "milli-guaranteed-pod"
+run_workload_and_check_cpu "burstable-pod"
+
+echo "Step 6: Cleaning up..."
+echo  # This adds a blank line for better readability
+cleanup_pods
+
+echo "Test completed."
