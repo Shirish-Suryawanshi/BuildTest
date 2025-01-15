@@ -195,3 +195,5 @@ echo  # This adds a blank line for better readability
 cleanup_pods
 
 echo "Test completed."
+
+# command to check the CPU manually :  ps -e -o psr,pid,%cpu,%mem,args | grep -i yes
