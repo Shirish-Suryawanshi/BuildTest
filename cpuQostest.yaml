@@ -31,6 +31,32 @@ spec:
 EOF
 }
 
+create_pod_manifest_be() {
+  local pod_name=$1
+  local cpu_request=$2
+  local cpu_limit=$3
+  local qos_class=$4
+
+  cat <<EOF > ${pod_name}.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${pod_name}
+spec:
+  containers:
+  - name: ${pod_name}-container
+    image: busybox:latest
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "while true; do echo \$(date): \$(cat /proc/self/status | grep Cpus_allowed_list); sleep 2; done"]
+    #resources:
+      #requests:
+        #cpu: ${cpu_request}
+        #memory: 1Gi
+      #limits:
+        #cpu: ${cpu_limit}
+        #memory: 1Gi
+EOF
+}
 
 
 check_cpu_manager_state() {
@@ -80,7 +106,7 @@ run_workload_and_check_cpu() {
       yes > /dev/null &
     done
   "
-  sleep 5  # Give the processes some time to run
+  sleep 2  # Give the processes some time to run
 
   echo "Checking running processes and CPU cores inside pod: ${pod_name}"
   kubectl exec ${pod_name} -- sh -c "
@@ -102,15 +128,15 @@ cleanup_pods() {
 }
 
 # Main script starts here
-echo "Step 1: Checking CPU Manager state file before deploying pods..."
+echo "Checking CPU Manager state file before deploying pods..."
 check_cpu_manager_state
 echo  # Add a blank line for better readability
-echo "**************"
+echo "********************************************"
 echo  # This adds a blank line for better readability
 
-echo "Step 2: Creating and deploying pods..."
+echo "Creating and deploying pods..."
 # Best-Effort Pod (no requests or limits)
-create_pod_manifest "best-effort-pod" "" "" "BestEffort"
+create_pod_manifest_be "best-effort-pod" "" "" "BestEffort"
 kubectl apply -f best-effort-pod.yaml
 
 # Guaranteed Pod (whole CPU)
@@ -133,28 +159,38 @@ kubectl wait --for=condition=Ready pod/guaranteed-pod --timeout=60s
 kubectl wait --for=condition=Ready pod/milli-guaranteed-pod --timeout=60s
 kubectl wait --for=condition=Ready pod/burstable-pod --timeout=60s
 
+echo "********************************************"
 echo  # This adds a blank line for better readability
-echo "Step 3: Checking CPU Manager state file after deploying pods..."
+echo "Checking CPU Manager state file after deploying pods..."
 echo  # This adds a blank line for better readability
 check_cpu_manager_state
 echo  # Add a blank line for better readability
-echo "**************"
+echo "********************************************"
 echo  # This adds a blank line for better readability
-echo "Step 4: Printing allocated CPUs for each pod..."
+echo "Printing allocated CPUs for each pod..."
 print_allocated_cpus "best-effort-pod"
+echo  # This adds a blank line for better readability
 print_allocated_cpus "guaranteed-pod"
+echo  # This adds a blank line for better readability
 print_allocated_cpus "milli-guaranteed-pod"
+echo  # This adds a blank line for better readability
 print_allocated_cpus "burstable-pod"
 
+echo "********************************************"
 echo  # Add a blank line for better readability
-echo "Step 5: Running workloads inside pods and checking CPU usage..."
+echo "Running workloads inside pods and checking CPU usage..."
 run_workload_and_check_cpu "best-effort-pod"
+echo  # This adds a blank line for better readability
 run_workload_and_check_cpu "guaranteed-pod"
+echo  # This adds a blank line for better readability
 run_workload_and_check_cpu "milli-guaranteed-pod"
+echo  # This adds a blank line for better readability
 run_workload_and_check_cpu "burstable-pod"
 
+echo "********************************************"
+echo  # Add a blank line for better readability
 echo  # This adds a blank line for better readability
-echo "Step 6: Cleaning up..."
+echo "Cleaning up..."
 echo  # This adds a blank line for better readability
 cleanup_pods
 
