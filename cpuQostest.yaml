@@ -151,7 +151,7 @@ cleanup_pods() {
 # Main script starts here
 print_isolated_cpus
 echo  # Add a blank line
-
+echo "********************************************"
 echo "Checking CPU Manager state file before deploying pods..."
 check_cpu_manager_state
 echo  # Add a blank line
