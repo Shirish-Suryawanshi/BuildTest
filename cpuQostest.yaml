@@ -197,3 +197,4 @@ cleanup_pods
 echo "Test completed."
 
 # command to check the CPU manually :  ps -e -o psr,pid,%cpu,%mem,args | grep -i yes
+# command to check if the host has isolated cpu 's configured :   cat /sys/devices/system/cpu/isolated
