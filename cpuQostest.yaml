@@ -132,7 +132,7 @@ echo "Checking CPU Manager state file before deploying pods..."
 check_cpu_manager_state
 echo  # Add a blank line
 echo "********************************************"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 
 echo "Creating and deploying pods..."
 # Best-Effort Pod (no requests or limits)
@@ -151,7 +151,7 @@ kubectl apply -f milli-guaranteed-pod.yaml
 create_pod_manifest "burstable-pod" "500m" "1" "Burstable"
 kubectl apply -f burstable-pod.yaml
 
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 
 echo "Waiting for pods to be in Running state..."
 kubectl wait --for=condition=Ready pod/best-effort-pod --timeout=60s
@@ -160,38 +160,38 @@ kubectl wait --for=condition=Ready pod/milli-guaranteed-pod --timeout=60s
 kubectl wait --for=condition=Ready pod/burstable-pod --timeout=60s
 
 echo "********************************************"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 echo "Checking CPU Manager state file after deploying pods..."
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 check_cpu_manager_state
 echo  # Add a blank line
 echo "********************************************"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 echo "Printing allocated CPUs for each pod..."
 print_allocated_cpus "best-effort-pod"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 print_allocated_cpus "guaranteed-pod"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 print_allocated_cpus "milli-guaranteed-pod"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 print_allocated_cpus "burstable-pod"
 
 echo "********************************************"
 echo  # Add a blank line
 echo "Running workloads inside pods and checking CPU usage..."
 run_workload_and_check_cpu "best-effort-pod"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 run_workload_and_check_cpu "guaranteed-pod"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 run_workload_and_check_cpu "milli-guaranteed-pod"
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 run_workload_and_check_cpu "burstable-pod"
 
 echo "********************************************"
 echo  # Add a blank line
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 echo "Cleaning up..."
-echo  # This adds a blank line for better readability
+echo  # This adds a blank line
 cleanup_pods
 
 echo "Test completed."
